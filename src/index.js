@@ -63,7 +63,7 @@ server.registerTool("spunk_mint",
     if ((await hasAgent(addr)) === false) return ok({ success: false, error: "NO_AGENT_ID" });
     const owned = Number(toBI(await call(CFG.CONTRACTS.nft, CFG.SEL.minted + padA(addr))));
     if (owned + count > CFG.MAX_PER_WALLET) return ok({ success: false, error: `WALLET_CAP: ${CFG.MAX_PER_WALLET - owned} slots left` });
-    const price = toBI(await call(CFG.CONTRACTS.nft, CFG.SEL.mintPriceWei)); const value = (price * BigInt(count)).toString();
+    const price = toBI(await call(CFG.CONTRACTS.nft, CFG.SEL.mintPriceWei)); const billable = count - (owned === 0 ? 1 : 0); const value = (price * BigInt(billable)).toString();
     const data = CFG.SEL.mint + padU(count);
     return ok({ success: true, count, to: CFG.CONTRACTS.nft, valueWei: value, data,
       bawPreview: `baw contract-call preview --binanceChainId 56 --from ${addr} --to ${CFG.CONTRACTS.nft} --value ${value} --inputData ${data} --json`,
@@ -89,7 +89,7 @@ server.registerTool("spunk_harvest",
   { title: "Build harvest", description: "Build a harvest transaction for one punk. Returns a `baw contract-call preview` command. Does not sign.", inputSchema: { id: z.number().int() } },
   async ({ id }) => {
     if (!live()) return ok({ success: false, error: "NOT_LIVE" });
-    const addr = await bawAddr(); const data = CFG.SEL.harvest + padU(id);
+    const addr = await bawAddr(); if (!addr) return ok({ success: false, error: "run `baw auth signin`" }); const data = CFG.SEL.harvest + padU(id);
     return ok({ success: true, id, to: CFG.CONTRACTS.vault, data,
       bawPreview: `baw contract-call preview --binanceChainId 56 --from ${addr} --to ${CFG.CONTRACTS.vault} --value 0 --inputData ${data} --json`,
       next: "Run bawPreview, confirm, then `baw contract-call execute --requestId <id>`." });
